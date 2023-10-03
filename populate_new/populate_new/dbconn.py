@@ -29,6 +29,5 @@ def create_mongo_connections():
     print("connecting to target database")
     url = os.getenv("TARGET_MONGODB_URL", "mongodb://localhost:27018/")
     target_client = MongoClient(url, document_class=RawBSONDocument)
-    target_database = url.split("/")[-1]
-    target_db = target_client[target_database]
+    target_db = target_client["alerts"]
     return source_db, target_db
