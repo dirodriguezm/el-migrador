@@ -1,0 +1,13 @@
+version: "3"
+services:
+  source:
+    image: mongo
+    ports:
+      - "27017:27017"
+    command: mongod --notablescan
+
+  target:
+    image: mongo
+    ports:
+      - "27018:27017"
+    command: mongod --notablescan

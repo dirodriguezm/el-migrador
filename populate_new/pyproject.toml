@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "populate-new"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "populate_new"}]
+
+[tool.poetry.dependencies]
+python = "^3.11,<3.12"
+db-plugins = "^6.1.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
