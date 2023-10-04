@@ -1,9 +1,9 @@
 from typing import Callable, List
 from pymongo.change_stream import CollectionChangeStream
-
+from pymongo.errors import BulkWriteError
 from pymongo.cursor import Cursor
 from dbconn import create_mongo_connections
-from pymongo import InsertOne
+from pymongo import InsertOne, UpdateOne
 from pymongo.database import Database
 from transform_object import transform_object
 from transform_detection import transform_detection
@@ -65,12 +65,16 @@ def migrate(
             cursor_type,
         )
         operations = []
+        doc_from_operations = {}
         times = []
         time0 = time.time()
         for document in cursor:
             decoded_document = bson.decode(document.raw)
-            op = InsertOne(transform_operation(decoded_document))
-            operations.append(op)
+            transformed_document = transform_operation(decoded_document)
+            if transformed_document["_id"] not in doc_from_operations:
+                op = InsertOne(transformed_document)
+                operations.append(op)
+                doc_from_operations[transformed_document["_id"]] = transformed_document
             if len(operations) == write_batch_size:
                 write_bulk_operations(
                     target_db, collection, operations, dry_run=dry_run
@@ -78,6 +82,7 @@ def migrate(
                 time1 = time.time()
                 times.append(time1 - time0)
                 operations = []
+                doc_from_operations = {}
                 time0 = time.time()
 
         if len(operations):
@@ -85,6 +90,7 @@ def migrate(
             time1 = time.time()
             times.append(time1 - time0)
             operations = []
+            doc_from_operations = {}
 
     assert len(operations) == 0
     session.end_session()
