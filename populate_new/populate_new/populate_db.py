@@ -53,6 +53,12 @@ def get_cursor(
     return cursor
 
 
+def eval_performance(times: list, counter: int, collection: str):
+    print(f"Processed {counter} {collection}")
+    print(f"Average time: {sum(times)/len(times)}")
+    print(f"Partial time: {sum(times)}")
+
+
 def migrate(
     collection: str,
     transform_operation: Callable[[dict], dict],
@@ -75,7 +81,9 @@ def migrate(
         operations = {}
         times = []
         time0 = time.time()
+        counter = 0
         for document in cursor:
+            counter += 1
             decoded_document = bson.decode(document.raw)
             transformed_document = transform_operation(decoded_document)
             if transformed_document["_id"] not in operations:
@@ -89,6 +97,8 @@ def migrate(
                 times.append(time1 - time0)
                 operations = {}
                 time0 = time.time()
+            if counter % 100000 == 0:
+                eval_performance(times, counter, collection)
 
         if len(operations.keys()):
             write_bulk_operations(target_db, collection, operations, dry_run=dry_run)
@@ -108,8 +118,9 @@ if __name__ == "__main__":
     else:
         dry_run = False
 
-    read_batch_size = 1000
-    write_batch_size = 1000
+    read_batch_size = 10000
+    write_batch_size = 10000
+    eval_every = 1000
 
     p_object = Process(
         target=migrate,
