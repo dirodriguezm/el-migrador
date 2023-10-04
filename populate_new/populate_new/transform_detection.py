@@ -42,6 +42,8 @@ def transform_detection(document: dict) -> dict:
     new_extra_fields.update(
         {k: v for k, v in document.items() if k not in new_detection}
     )
+    if "candid" in new_extra_fields:
+        del new_extra_fields["candid"]
     new_detection["extra_fields"] = new_extra_fields
 
     return new_detection
