@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Callable, List, Dict
 from pymongo.change_stream import CollectionChangeStream
 from pymongo.errors import BulkWriteError
 from pymongo.cursor import Cursor
@@ -15,14 +15,22 @@ import sys
 
 
 def write_bulk_operations(
-    db: Database, collection: str, operations: List[InsertOne], dry_run=True
+    db: Database, collection: str, operations: Dict[str, InsertOne], dry_run=True
 ):
     # start session to avoid timeout
     # see https://www.mongodb.com/docs/v4.4/reference/method/cursor.noCursorTimeout/#session-idle-timeout-overrides-nocursortimeout
     if dry_run:
         print(f"Writing {len(operations)} objects")
     else:
-        db[collection].bulk_write(operations, ordered=False)
+        try:
+            db[collection].bulk_write(list(operations.values()), ordered=False)
+        except BulkWriteError as bwe:
+            for err in bwe.details["writeErrors"]:
+                repeated_id = err["keyValue"]["_id"]
+                operations.pop(repeated_id)
+            db[collection].bulk_write(list(operations.values()), ordered=False)
+        finally:
+            return
 
 
 def get_cursor(
@@ -64,33 +72,29 @@ def migrate(
             read_batch_size,
             cursor_type,
         )
-        operations = []
-        doc_from_operations = {}
+        operations = {}
         times = []
         time0 = time.time()
         for document in cursor:
             decoded_document = bson.decode(document.raw)
             transformed_document = transform_operation(decoded_document)
-            if transformed_document["_id"] not in doc_from_operations:
+            if transformed_document["_id"] not in operations:
                 op = InsertOne(transformed_document)
-                operations.append(op)
-                doc_from_operations[transformed_document["_id"]] = transformed_document
-            if len(operations) == write_batch_size:
+                operations[transformed_document["_id"]] = op
+            if len(operations.keys()) == write_batch_size:
                 write_bulk_operations(
                     target_db, collection, operations, dry_run=dry_run
                 )
                 time1 = time.time()
                 times.append(time1 - time0)
-                operations = []
-                doc_from_operations = {}
+                operations = {}
                 time0 = time.time()
 
-        if len(operations):
+        if len(operations.keys()):
             write_bulk_operations(target_db, collection, operations, dry_run=dry_run)
             time1 = time.time()
             times.append(time1 - time0)
-            operations = []
-            doc_from_operations = {}
+            operations = {}
 
     assert len(operations) == 0
     session.end_session()
@@ -104,8 +108,8 @@ if __name__ == "__main__":
     else:
         dry_run = False
 
-    read_batch_size = 10000
-    write_batch_size = 10000
+    read_batch_size = 1000
+    write_batch_size = 1000
 
     p_object = Process(
         target=migrate,
@@ -139,5 +143,5 @@ if __name__ == "__main__":
     )
 
     p_object.start()
-    p_detection.start()
-    p_non_detection.start()
+    # p_detection.start()
+    # p_non_detection.start()
