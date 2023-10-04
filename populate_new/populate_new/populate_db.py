@@ -64,6 +64,7 @@ def migrate(
     transform_operation: Callable[[dict], dict],
     read_batch_size: int,
     write_batch_size: int,
+    eval_every: int,
     dry_run: bool,
     cursor_type: str = "find",
 ):
@@ -97,7 +98,7 @@ def migrate(
                 times.append(time1 - time0)
                 operations = {}
                 time0 = time.time()
-            if counter % 100000 == 0:
+            if counter % eval_every == 0:
                 eval_performance(times, counter, collection)
 
         if len(operations.keys()):
