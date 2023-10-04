@@ -37,6 +37,8 @@ def transform_detection(document: dict) -> dict:
     }
 
     new_extra_fields = document.pop("extra_fields")
+    if type(new_extra_fields) is not dict:
+        new_extra_fields = {}
     new_extra_fields.update(
         {k: v for k, v in document.items() if k not in new_detection}
     )
