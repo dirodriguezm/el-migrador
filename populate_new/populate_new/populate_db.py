@@ -114,49 +114,34 @@ def migrate(
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 5:
-        dry_run = sys.argv[4] == "--dry-run"
+    if len(sys.argv) == 6:
+        dry_run = sys.argv[5] == "--dry-run"
     else:
         dry_run = False
 
     read_batch_size = int(sys.argv[1])
     write_batch_size = int(sys.argv[2])
     eval_every = int(sys.argv[3])
-
-    p_object = Process(
-        target=migrate,
-        args=(
-            "object",
-            transform_object,
-            read_batch_size,
-            write_batch_size,
-            eval_every,
-            dry_run,
-        ),
-    )
-    p_detection = Process(
-        target=migrate,
-        args=(
-            "detection",
-            transform_detection,
-            read_batch_size,
-            write_batch_size,
-            eval_every,
-            dry_run,
-        ),
-    )
-    p_non_detection = Process(
-        target=migrate,
-        args=(
-            "non_detection",
-            transform_non_detection,
-            read_batch_size,
-            write_batch_size,
-            eval_every,
-            dry_run,
-        ),
-    )
-
-    p_object.start()
-    p_detection.start()
-    p_non_detection.start()
+    valid_collections = {
+        "object": transform_object,
+        "detection": transform_detection,
+        "non_detection": transform_non_detection,
+    }
+    collections = sys.argv[4].split(",")
+    for collection in collections:
+        if collection not in valid_collections:
+            raise ValueError(
+                f"Invalid collection {collection}. Valid collections are: object, detection, non_detection"
+            )
+        p = Process(
+            target=migrate,
+            args=(
+                collection,
+                valid_collections[collection],
+                read_batch_size,
+                write_batch_size,
+                eval_every,
+                dry_run,
+            ),
+        )
+        p.start()
