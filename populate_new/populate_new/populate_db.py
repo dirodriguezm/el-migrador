@@ -1,9 +1,9 @@
-from typing import Callable, List, Dict
+from typing import Callable, Dict
 from pymongo.change_stream import CollectionChangeStream
 from pymongo.errors import BulkWriteError
 from pymongo.cursor import Cursor
 from dbconn import create_mongo_connections
-from pymongo import InsertOne, UpdateOne
+from pymongo import InsertOne
 from pymongo.database import Database
 from transform_object import transform_object
 from transform_detection import transform_detection
@@ -143,5 +143,5 @@ if __name__ == "__main__":
     )
 
     p_object.start()
-    # p_detection.start()
-    # p_non_detection.start()
+    p_detection.start()
+    p_non_detection.start()
