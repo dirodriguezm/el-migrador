@@ -119,9 +119,9 @@ if __name__ == "__main__":
     else:
         dry_run = False
 
-    read_batch_size = sys.argv[1]
-    write_batch_size = sys.argv[2]
-    eval_every = sys.argv[3]
+    read_batch_size = int(sys.argv[1])
+    write_batch_size = int(sys.argv[2])
+    eval_every = int(sys.argv[3])
 
     p_object = Process(
         target=migrate,
