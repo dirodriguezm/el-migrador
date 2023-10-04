@@ -114,14 +114,14 @@ def migrate(
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        dry_run = sys.argv[1] == "--dry-run"
+    if len(sys.argv) == 5:
+        dry_run = sys.argv[4] == "--dry-run"
     else:
         dry_run = False
 
-    read_batch_size = 10000
-    write_batch_size = 10000
-    eval_every = 1000
+    read_batch_size = sys.argv[1]
+    write_batch_size = sys.argv[2]
+    eval_every = sys.argv[3]
 
     p_object = Process(
         target=migrate,
@@ -130,6 +130,7 @@ if __name__ == "__main__":
             transform_object,
             read_batch_size,
             write_batch_size,
+            eval_every,
             dry_run,
         ),
     )
@@ -140,6 +141,7 @@ if __name__ == "__main__":
             transform_detection,
             read_batch_size,
             write_batch_size,
+            eval_every,
             dry_run,
         ),
     )
@@ -150,6 +152,7 @@ if __name__ == "__main__":
             transform_non_detection,
             read_batch_size,
             write_batch_size,
+            eval_every,
             dry_run,
         ),
     )
