@@ -1,19 +1,20 @@
 from typing import List
 
 
+def get_sid(tids: List[str]):
+    sid = []
+    for tid in tids:
+        if "ZTF" in tid:
+            sid.append("ZTF")
+        elif "ATLAS" in tid:
+            sid.append("ATLAS")
+        elif "LSST" in tid:
+            sid.append("LSST")
+
+    return sid
+
+
 def transform_object(document: dict):
-    def get_sid(tids: List[str]):
-        sid = []
-        for tid in tids:
-            if "ZTF" in tid:
-                sid.append("ZTF")
-            elif "ATLAS" in tid:
-                sid.append("ATLAS")
-            elif "LSST" in tid:
-                sid.append("LSST")
-
-        return sid
-
     transformed_object = {
         "_id": document["aid"],
         "oid": document["oid"],

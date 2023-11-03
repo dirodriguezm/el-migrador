@@ -5,11 +5,10 @@ from pymongo.database import Database
 db_conn = MongoConnection()
 db_settings = {
     "HOST": "localhost",
-    "USER": "mongo",
-    "PASSWORD": "mongo",
+    "USER": "",
+    "PASSWORD": "",
     "PORT": 27017,
     "DATABASE": "old_db",
-    "AUTH_SOURCE": "admin",
 }
 
 db_conn.connect(db_settings)

@@ -231,6 +231,17 @@ files = [
 ]
 
 [[package]]
+name = "pykka"
+version = "4.0.1"
+description = "Pykka is a Python implementation of the actor model"
+optional = false
+python-versions = ">=3.8.0,<4.0.0"
+files = [
+    {file = "pykka-4.0.1-py3-none-any.whl", hash = "sha256:009fb812a1998f36724724b1cf88bd5d203d61473948b30467220aa9d32d907b"},
+    {file = "pykka-4.0.1.tar.gz", hash = "sha256:cb499c0b099412ee2200cb3ca51740c3834beb35bcd172b7daa44ee76ac165f2"},
+]
+
+[[package]]
 name = "pymongo"
 version = "4.4.1"
 description = "Python driver for MongoDB <http://www.mongodb.org>"
@@ -416,4 +427,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11,<3.12"
-content-hash = "15eb601714a174d4d5bcd3f049a65de55215706f9f44ff9bdbca3d7faa188e3b"
+content-hash = "6ef751abdfa1d99f1b653f18e7d400aa5c2a4cb85df8cafded1cc436d88b684e"
