@@ -1,4 +1,5 @@
 import logging
+from typing import List
 import pykka
 
 
@@ -11,17 +12,18 @@ class GroupDetectionActor(pykka.ThreadingActor):
         self.size = 0
         self.max_size = max_size
 
-    def on_receive(self, message: dict) -> None:
-        self.logger.debug(f"Grouping detection {message['_id']}")
-        self.size += 1
-        if message["oid"] in self.groups:
-            self.groups[message["oid"]].append(message)
-        else:
-            self.groups[message["oid"]] = [message]
-        if self.size == self.max_size:
-            self.sorting_hat_actor.tell(self.groups)
-            self.groups = {}
-            self.size = 0
+    def on_receive(self, message: List[dict]) -> None:
+        self.logger.debug(f"Grouping {len(message)} detections")
+        self.size += len(message)
+        for detection in message:
+            if detection["oid"] in self.groups:
+                self.groups[detection["oid"]].append(detection)
+            else:
+                self.groups[detection["oid"]] = [detection]
+            if self.size == self.max_size:
+                self.sorting_hat_actor.tell(self.groups)
+                self.groups = {}
+                self.size = 0
 
     def on_stop(self) -> None:
         self.logger.debug("Grouping last detection")

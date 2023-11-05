@@ -1,33 +1,17 @@
 import logging
 import pykka
+from typing import List
 
 
-class TransformDetectionActor(pykka.ThreadingActor):
-    def __init__(self, grouper_actor: pykka.ActorRef):
-        super().__init__()
-        self.grouper_actor = grouper_actor
-        self.logger = logging.getLogger("TransformDetectionActor")
-
-    def on_receive(self, message: dict) -> None:
-        self.logger.debug(f"Transforming detection {message['_id']}")
-        detection = self.transform_detection(message)
-        self.grouper_actor.tell(detection)
+class TransformSingleDetectionActor(pykka.ThreadingActor):
+    def on_receive(self, message: List[dict]) -> List[dict]:
+        return [self.transform_detection(detection) for detection in message]
 
     def transform_detection(self, document: dict) -> dict:
-        def get_sid(tid: str):
-            sid = ""
-            if "ZTF" in tid or "ztf" in tid:
-                sid = "ZTF"
-            elif "ATLAS" in tid or "atlas" in tid:
-                sid = "ATLAS"
-            elif "LSST" in tid or "lsst" in tid:
-                sid = "LSST"
-            return sid
-
         new_detection = {
             "_id": document["candid"],
             "tid": document["tid"],
-            "sid": get_sid(document["tid"]),
+            "sid": self.get_sid(document["tid"]),
             "aid": document["aid"],
             "oid": document["oid"],
             "mjd": document["mjd"],
@@ -59,3 +43,46 @@ class TransformDetectionActor(pykka.ThreadingActor):
         new_detection["extra_fields"] = new_extra_fields
 
         return new_detection
+
+    def get_sid(self, tid: str):
+        sid = ""
+        if "ZTF" in tid or "ztf" in tid:
+            sid = "ZTF"
+        elif "ATLAS" in tid or "atlas" in tid:
+            sid = "ATLAS"
+        elif "LSST" in tid or "lsst" in tid:
+            sid = "LSST"
+        return sid
+
+
+class TransformDetectionActor(pykka.ThreadingActor):
+    def __init__(self, grouper_actor: pykka.ActorRef, num_transformers: int):
+        super().__init__()
+        self.grouper_actor = grouper_actor
+        self.logger = logging.getLogger("TransformDetectionActor")
+        self.transform_actors = [
+            TransformSingleDetectionActor.start()
+        ] * num_transformers
+
+    def on_receive(self, message: List[dict]) -> None:
+        self.logger.debug(f"Transforming {len(message)} detections")
+        batch = []
+        n_coroutines = len(self.transform_actors)
+        start = 0
+        end = int(len(message) / n_coroutines)
+        for ta in self.transform_actors:
+            future = ta.ask(message[start:end], block=False)
+            batch.append(future)
+            start = end
+            end = (
+                end + int(len(message) / n_coroutines)
+                if end + int(len(message) / n_coroutines) < len(message)
+                else len(message)
+            )
+        result = batch[0].join(*batch[1:])
+        for res in result.get():
+            self.grouper_actor.tell(res)
+
+    def on_stop(self):
+        for ta in self.transform_actors:
+            ta.stop()

@@ -1,4 +1,5 @@
 import pykka
+import pykka.debug
 from group_detection import GroupDetectionActor
 from mongo_detection import MongoDetectionOperationActor
 from mongo_writer import MongoWriterActor
@@ -8,8 +9,11 @@ from transform_detection import TransformDetectionActor
 from dbconn import create_mongo_connections
 import bson
 import logging
+import signal
+
 
 logging.basicConfig(level=logging.INFO)
+signal.signal(signal.SIGUSR1, pykka.debug.log_thread_tracebacks)
 
 
 def get_detections_cursor(session, db, batch_size):
@@ -22,26 +26,37 @@ def get_detections_cursor(session, db, batch_size):
 
 
 def documents(cursor):
+    batch = []
     for document in cursor:
         decoded_document = bson.decode(document.raw)
-        yield decoded_document
+        batch.append(decoded_document)
+        if len(batch) == 2000:
+            yield batch
+            batch = []
+    if len(batch) > 0:
+        yield batch
+
+
+def start_actors(target_db, write_batch_size, dry_run):
+    writer_actor = MongoWriterActor.start(target_db, write_batch_size, dry_run)
+    detection_operation_actor = MongoDetectionOperationActor.start(
+        writer_actor, write_batch_size
+    )
+    object_operation_actor = MongoObjectOperationActor.start()
+    sorting_hat_actor = SortingHatActor.start(
+        detection_operation_actor, object_operation_actor
+    )
+    grouper_actor = GroupDetectionActor.start(sorting_hat_actor, write_batch_size)
+    transform_actor = TransformDetectionActor.start(grouper_actor, 5)
+    return transform_actor
 
 
 def migrate_detection(read_batch_size: int, write_batch_size: int, dry_run=True):
     source_db, target_db = create_mongo_connections()
     with source_db.client.start_session() as session:
         detections_cursor = get_detections_cursor(session, source_db, read_batch_size)
-        writer_actor = MongoWriterActor.start(target_db, write_batch_size, dry_run)
-        detection_operation_actor = MongoDetectionOperationActor.start(
-            writer_actor, write_batch_size
-        )
-        object_operation_actor = MongoObjectOperationActor.start()
-        sorting_hat_actor = SortingHatActor.start(
-            detection_operation_actor, object_operation_actor
-        )
-        grouper_actor = GroupDetectionActor.start(sorting_hat_actor, write_batch_size)
-        transform_actor = TransformDetectionActor.start(grouper_actor)
-        for detection in documents(detections_cursor):
-            transform_actor.tell(detection)
+        transform_actor = start_actors(target_db, write_batch_size, dry_run)
+        for batch in documents(detections_cursor):
+            transform_actor.tell(batch)
 
     pykka.ActorRegistry.stop_all()

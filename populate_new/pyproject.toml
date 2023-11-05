@@ -12,6 +12,11 @@ db-plugins = "^6.1.0"
 pykka = "^4.0.1"
 
 
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
