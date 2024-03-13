@@ -15,6 +15,8 @@ def create_indexes():
             "serverSelectionTimeoutMS": 3000,  # 3 second timeout
             "port": 27018,
             "database": "new_db",
+            "username": "",
+            "password": "",
         }
     )
     db.create_db()
@@ -36,19 +38,16 @@ def create_mongo_connections():
     source_client = MongoClient(
         host=host,
         port=port,
-        username=username,
-        password=password,
         authSource=auth_source,
         document_class=RawBSONDocument,
     )
     source_db = source_client[database]
     print("connecting to target database")
     host, port, database, username, password, auth_source = read_env_variables("TARGET")
+    create_indexes()
     target_client = MongoClient(
         host=host,
         port=port,
-        username=username,
-        password=password,
         authSource=auth_source,
         document_class=RawBSONDocument,
     )

@@ -2,7 +2,7 @@ import pykka
 import logging
 
 
-class MongoObjectOperationActor(pykka.ThreadingActor):
+class MongoObjectWriterActor(pykka.ThreadingActor):
     def __init__(self):
         super().__init__()
         self.logger = logging.getLogger("MongoObjectOperationActor")

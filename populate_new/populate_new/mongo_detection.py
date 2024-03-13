@@ -5,7 +5,18 @@ from typing import List
 from pymongo import InsertOne
 
 
-class MongoDetectionOperationActor(pykka.ThreadingActor):
+class MongoDetectionWriterActor(pykka.ThreadingActor):
+    """Actor to write detections to the database.
+
+    This actor receives a list of detections and writes them to the database.
+
+    Parameters
+    ----------
+    mongo_writer_actor : pykka.ActorRef
+        Generic writer actor
+    write_batch_size : int
+        Number of detections to write in a batch
+    """
     def __init__(self, mongo_writer_actor: pykka.ActorRef, write_batch_size: int):
         super().__init__()
         self.mongo_writer_actor = mongo_writer_actor
@@ -17,7 +28,7 @@ class MongoDetectionOperationActor(pykka.ThreadingActor):
         self.logger.debug(f"Creating operations for {len(message)} detections")
         for detection in message:
             operation = InsertOne(detection)
-            self.operations[detection["_id"]] = operation
+            self.operations[(detection["candid"], detection["oid"])] = operation
             if len(self.operations.keys()) == self.write_batch_size:
                 self.send_operations()
 

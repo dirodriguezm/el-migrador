@@ -9,7 +9,7 @@ class TransformSingleDetectionActor(pykka.ThreadingActor):
 
     def transform_detection(self, document: dict) -> dict:
         new_detection = {
-            "_id": document["candid"],
+            "candid": document["_id"],
             "tid": document["tid"],
             "sid": self.get_sid(document["tid"]),
             "aid": document["aid"],
@@ -31,17 +31,15 @@ class TransformSingleDetectionActor(pykka.ThreadingActor):
             "parent_candid": document["parent_candid"],
             "has_stamp": document["has_stamp"],
         }
-
         new_extra_fields = document.pop("extra_fields")
         if type(new_extra_fields) is not dict:
             new_extra_fields = {}
         new_extra_fields.update(
             {k: v for k, v in document.items() if k not in new_detection}
         )
-        if "candid" in new_extra_fields:
-            del new_extra_fields["candid"]
+        # delete candid from extra fields if it exists
+        new_extra_fields.pop("candid", None)
         new_detection["extra_fields"] = new_extra_fields
-
         return new_detection
 
     def get_sid(self, tid: str):
@@ -56,6 +54,11 @@ class TransformSingleDetectionActor(pykka.ThreadingActor):
 
 
 class TransformDetectionActor(pykka.ThreadingActor):
+    """Actor to transform detections before sending them to the grouper actor.
+
+    This actor will parse the detections into the new schema and send them to the grouper actor.
+    It uses a pool of TransformSingleDetectionActor to parallelize the transformation process.
+    """
     def __init__(self, grouper_actor: pykka.ActorRef, num_transformers: int):
         super().__init__()
         self.grouper_actor = grouper_actor

@@ -8,7 +8,7 @@ packages = [{include = "populate_new"}]
 
 [tool.poetry.dependencies]
 python = "^3.11,<3.12"
-db-plugins = "^6.1.0"
+db-plugins = "6.1.1a137"
 pykka = "^4.0.1"
 
 

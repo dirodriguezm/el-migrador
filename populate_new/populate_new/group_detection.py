@@ -4,6 +4,11 @@ import pykka
 
 
 class GroupDetectionActor(pykka.ThreadingActor):
+    """Actor to group detections before sending them to the sorting hat actor.
+    
+    This actor groups detections by their object id and sends them to the sorting hat actor
+    when the group size reaches the max size.
+    """
     def __init__(self, sorting_hat_actor: pykka.ActorRef, max_size: int):
         super().__init__()
         self.sorting_hat_actor = sorting_hat_actor
