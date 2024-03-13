@@ -11,7 +11,6 @@ def _generate_single_detection(object: dict) -> InsertOne:
     return InsertOne(
         {
             "_id": candid,
-            "candid": candid,
             "tid": object["extra_fields"]["tid"][
                 randint(0, len(object["extra_fields"]["tid"]) - 1)
             ],
