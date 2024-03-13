@@ -50,6 +50,7 @@ class SortingHatActor(pykka.ThreadingActor):
         Examples
         --------
         >>> message = {"oid1": [detection1, detection2], "oid2": [detection3, detection4]}
+        >>> assign_aid(message)
         """
         detections, found = self.get_aid_by_oid(detections)
         if found:
@@ -83,14 +84,15 @@ class SortingHatActor(pykka.ThreadingActor):
 
         Returns
         -------
-        List[dict]
-            List of detections with aid assigned
+        Tuple[dict, bool]
+            The modified dictionary and a boolean indicating if the aid was found
 
         Examples
         --------
         >>> detections = {"oid1": [detection1, detection2], "oid2": [detection3, detection4]}
+
         >>> get_aid_by_oid(detections)
-        [{"oid": "oid1", "aid": "ALabc123", "mjd": "59000", "mag": 20, ...}]
+        ({"oid1": [detection1, detection2], "oid2": [detection3, detection4]}, True)
         """
         for oid in detections:
             # TODO: improve this query
@@ -111,12 +113,19 @@ class SortingHatActor(pykka.ThreadingActor):
 
         Parameters
         ----------
-        detections : List[dict]
-            List of detections
+        detections : dict
+            Dictionary where each key is the oid and value is a list of detections
 
         Returns
         -------
-        List[dict]
+        Tuple[List[dict], bool]
+            The modified list and a boolean indicating if the aid was found
+
+        Examples
+        --------
+        >>> detections = {"oid1": [detection1, detection2], "oid2": [detection3, detection4]}
+        >>> get_aid_by_conesearch(detections)
+        ({"oid1": [detection1, detection2], "oid2": [detection3, detection4]}, True)
         """
         for oid in detections:
             aid = self.conesearch_query(
@@ -147,6 +156,14 @@ class SortingHatActor(pykka.ThreadingActor):
         -------
         Union[str, None]
             The alerce_id if found, None otherwise
+
+        Examples
+        --------
+        >>> conesearch_query(db, 0, 0, 1)
+        1234567890123456789
+
+        >>> conesearch_query(db, 10, 20, 1)
+        None
         """
         found = db["object"].find_one(
             {
@@ -166,7 +183,25 @@ class SortingHatActor(pykka.ThreadingActor):
             return found["aid"]
         return None
 
-    def new_aid(self, detections: List[dict]) -> Tuple[List[dict], List[dict]]:
+    def new_aid(self, detections: dict) -> Tuple[List[dict], List[dict]]:
+        """Assigns a new alerce id to each detection
+
+        Parameters
+        ----------
+        detections : dict
+            Dictionary where each key is the oid and value is a list of detections
+
+        Returns
+        -------
+        Tuple[List[dict], List[dict]]
+            The modified list and a list of new objects
+
+        Examples
+        --------
+        >>> detections = {"oid1": [detection1, detection2], "oid2": [detection3, detection4]}
+        >>> new_aid(detections)
+        ({"oid1": [detection1, detection2], "oid2": [detection3, detection4]}, [{"_id": oid1, "aid": 1234567890123456789}, {"_id": oid2, "aid": 1234567890123456789}])
+        """
         new_objects = []
         for oid in detections:
             aid = self.id_generator(detections[oid][0]["ra"], detections[oid][0]["dec"])
@@ -193,6 +228,11 @@ class SortingHatActor(pykka.ThreadingActor):
         -------
         int
             Identifier of 19 digits
+
+        Examples
+        --------
+        >>> id_generator(0, 0)
+        1000000000000000000
         """
         # 19-Digit ID - two spare at the end for up to 100 duplicates
         aid = 1000000000000000000
